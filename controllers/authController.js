@@ -5,6 +5,8 @@ const jwt = require("jsonwebtoken");
 const { poolPromise } = require("../config/db");
 require("dotenv").config();
 
+
+//Login
 exports.login = async (req, res) => {
     try {
         const { correo, contrasena } = req.body;
@@ -32,7 +34,7 @@ exports.login = async (req, res) => {
     }
 };
 
-// Solicitar recuperación de contraseña
+// Recuperación de contraseña
 exports.solicitarRecuperacion = async (req, res) => {
     try {
       const { correo } = req.body;
@@ -49,7 +51,7 @@ exports.solicitarRecuperacion = async (req, res) => {
   
       // Generar un token único
       const token = crypto.randomBytes(20).toString("hex");
-      const expireDate = new Date(Date.now() + 3600000); // 1 hora de validez
+      const expireDate = new Date(Date.now() + 3600000);
   
       // Guardar el token y la fecha de expiración en la base de datos
       await pool.request()

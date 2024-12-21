@@ -2,7 +2,9 @@ const { poolPromise } = require("../config/db");
 
 exports.agregarPedido = async (req, res) => {
     try {
-        const { usuario_id, total, detalles } = req.body;
+
+        const usuario_id = req.user.id; // Obtiene el ID del usuario desde req.user
+        const { total, detalles } = req.body;
 
         const pool = await poolPromise;
         const result = await pool
@@ -33,9 +35,11 @@ exports.agregarPedido = async (req, res) => {
 
         res.status(201).json({ msg: "Pedido agregado correctamente", pedidoId });
     } catch (err) {
+        console.error(err);
         res.status(500).json({ error: err.message });
     }
 };
+
 
 exports.actualizarPedido = async (req, res) => {
     try {
@@ -114,14 +118,15 @@ exports.eliminarPedido = async (req, res) => {
 // Confirmar el carrito de compras
 exports.confirmarCarrito = async (req, res) => {
     try {
-        const { usuario_id, total, detalles } = req.body;
+        const usuario_id = req.user.id; 
+
+        const { total, detalles } = req.body;
         const pool = await poolPromise;
 
-        // Confirmar el carrito y obtener el ID del pedido
         const result = await pool.request()
             .input("usuario_id", usuario_id)
             .input("total", total)
-            .input("estado_id", 3) // Estado: Pendiente
+            .input("estado_id", 3) 
             .execute("ConfirmarCarrito");
 
         const pedidoId = result.recordset[0].pedido_id;
@@ -145,6 +150,7 @@ exports.confirmarCarrito = async (req, res) => {
 // Obtener el historial de pedidos del cliente
 exports.historialPedidos = async (req, res) => {
     try {
+        
         const usuario_id = req.user.id;
         const pool = await poolPromise;
 
@@ -158,7 +164,7 @@ exports.historialPedidos = async (req, res) => {
     }
 };
 
-// Obtener todos los pedidos pendientes para el operador
+// Obtener todos los pedidos pendientes 
 exports.obtenerPedidosPendientes = async (req, res) => {
     try {
         const pool = await poolPromise;
@@ -172,7 +178,8 @@ exports.obtenerPedidosPendientes = async (req, res) => {
     }
 };
 
-// Actualizar el estado del pedido (Aprobar o Rechazar)
+// Actualizar el estado del pedido 
+// (Aprobar o Rechazar)
 exports.actualizarEstadoPedido = async (req, res) => {
     try {
         const { estado_id } = req.body;

@@ -56,20 +56,6 @@ exports.actualizarProducto = async (req, res) => {
 };
 
 
-// exports.obtenerProductos = async (req, res) => {
-//     try {
-//         const pool = await poolPromise;
-//         const result = await pool.request().query(`
-//             SELECT p.id, p.codigo, p.nombre, p.descripcion, p.precio, p.stock, c.nombre AS categoria, e.descripcion AS estado, p.imagen, p.fecha_creacion
-//             FROM Productos p
-//             JOIN Categorias c ON p.categoria_id = c.id
-//             JOIN Estados e ON p.estado_id = e.id
-//         `);
-//         res.json(result.recordset);
-//     } catch (err) {
-//         res.status(500).json({ error: err.message });
-//     }
-// };
 
 exports.obtenerProductos = async (req, res) => {
     try {
