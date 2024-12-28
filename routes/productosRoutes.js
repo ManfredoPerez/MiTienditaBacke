@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const multer = require("multer");
-const { agregarProducto, eliminarProducto, actualizarProducto, obtenerProductos } = require("../controllers/productosController");
+const { agregarProducto, eliminarProducto, obtenerProductoPorId, actualizarProducto, obtenerProductos } = require("../controllers/productosController");
 const authMiddleware = require("../middleware/authMiddleware");
 
 // Configuración de almacenamiento para imágenes
@@ -20,6 +20,7 @@ const upload = multer({ storage });
 router.post("/", authMiddleware, upload.single("imagen"), agregarProducto);
 router.put("/:id", authMiddleware, upload.single("imagen"), actualizarProducto);
 router.get("/", authMiddleware, obtenerProductos);
+router.get("/:id", authMiddleware, obtenerProductoPorId);
 router.delete("/:id", authMiddleware, eliminarProducto);
 
 module.exports = router;

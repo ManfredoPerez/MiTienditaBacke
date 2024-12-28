@@ -24,11 +24,14 @@ exports.agregarProducto = async (req, res) => {
     }
 };
 
+
 exports.actualizarProducto = async (req, res) => {
     try {
         const { nombre, descripcion, precio, stock, categoria_id, estado_id } = req.body;
-        const imagen = req.file ? `/uploads/${req.file.filename}` : req.body.imagen;
         const id = req.params.id;
+
+        // Si se seleccionó una nueva imagen, se procesa, si no, se mantiene la actual
+        const imagen = req.file ? `/uploads/${req.file.filename}` : req.body.imagen;
 
         const pool = await poolPromise;
         await pool
@@ -39,7 +42,7 @@ exports.actualizarProducto = async (req, res) => {
             .input("precio", precio)
             .input("stock", stock)
             .input("categoria_id", categoria_id)
-            .input("imagen", imagen)
+            .input("imagen", imagen)  // Aquí estamos asegurándonos de usar la imagen actual si no se cargó una nueva
             .input("estado_id", estado_id)
             .query(`
                 UPDATE Productos
@@ -56,7 +59,6 @@ exports.actualizarProducto = async (req, res) => {
 };
 
 
-
 exports.obtenerProductos = async (req, res) => {
     try {
         const pool = await poolPromise;
@@ -71,12 +73,41 @@ exports.obtenerProductos = async (req, res) => {
         // Transformar rutas relativas en absolutas
         const productos = result.recordset.map(product => ({
             ...product,
-            imagen: product.imagen.startsWith("/uploads/")
+            imagen: product.imagen && product.imagen.startsWith("/uploads/")
                 ? `${req.protocol}://${req.get("host")}${product.imagen}`
                 : product.imagen
         }));
 
         res.json(productos);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+exports.obtenerProductoPorId = async (req, res) => {
+    try {
+        const id = req.params.id;
+        const pool = await poolPromise;
+        const result = await pool.request().input("id", id).query(`
+            SELECT p.id, p.codigo, p.nombre, p.descripcion, p.precio, p.stock, 
+                   c.nombre AS categoria, e.descripcion AS estado, p.imagen, p.fecha_creacion
+            FROM Productos p
+            JOIN Categorias c ON p.categoria_id = c.id
+            JOIN Estados e ON p.estado_id = e.id
+            WHERE p.id = @id
+        `);
+
+        if (result.recordset.length === 0) {
+            return res.status(404).json({ error: "Producto no encontrado" });
+        }
+
+        // Transformar ruta relativa de la imagen en absoluta
+        const producto = result.recordset[0];
+        producto.imagen = producto.imagen.startsWith("/uploads/")
+            ? `${req.protocol}://${req.get("host")}${producto.imagen}`
+            : producto.imagen;
+
+        res.json(producto);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
