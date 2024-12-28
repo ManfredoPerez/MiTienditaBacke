@@ -24,7 +24,6 @@ exports.agregarProducto = async (req, res) => {
     }
 };
 
-
 exports.actualizarProducto = async (req, res) => {
     try {
         const { nombre, descripcion, precio, stock, categoria_id, estado_id } = req.body;
