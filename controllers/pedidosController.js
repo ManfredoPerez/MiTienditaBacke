@@ -59,6 +59,16 @@ exports.actualizarPedido = async (req, res) => {
     }
 };
 
+exports.obtenerTodosPedidos = async (req, res) => {
+    try {
+        const pool = await poolPromise;
+        const result = await pool.request().execute("ObtenerPedidosExtendidos");
+        res.json(result.recordset);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
 
 exports.obtenerPedidos = async (req, res) => {
     try {

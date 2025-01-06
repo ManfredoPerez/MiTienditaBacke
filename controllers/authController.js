@@ -1,9 +1,10 @@
 const bcrypt = require("bcryptjs");
-const nodemailer = require("nodemailer");
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const { poolPromise } = require("../config/db");
 require("dotenv").config();
+const { Resend } = require('resend');
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 
 //Login
@@ -36,58 +37,54 @@ exports.login = async (req, res) => {
 
 // Recuperación de contraseña
 exports.solicitarRecuperacion = async (req, res) => {
-    try {
-      const { correo } = req.body;
-      const pool = await poolPromise;
-  
-      // Verificar si el correo existe
-      const result = await pool.request().input("correo", correo).query(`
-        SELECT * FROM Usuarios WHERE correo = @correo
-      `);
-  
-      if (result.recordset.length === 0) {
-        return res.status(404).json({ msg: "Correo no encontrado" });
-      }
-  
-      // Generar un token único
-      const token = crypto.randomBytes(20).toString("hex");
-      const expireDate = new Date(Date.now() + 3600000);
-  
-      // Guardar el token y la fecha de expiración en la base de datos
-      await pool.request()
-        .input("correo", correo)
-        .input("token", token)
-        .input("expireDate", expireDate)
-        .query(`
-          UPDATE Usuarios SET token_recuperacion = @token, token_expiracion = @expireDate WHERE correo = @correo
-        `);
-  
-      // Configurar el transporte de correo
-      const transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS,
-        },
-      });
-  
-      // Enviar el correo con el enlace de recuperación
-      const resetUrl = `${process.env.BASE_URL}/reset-password/${token}`;
-      const mailOptions = {
-        from: process.env.EMAIL_USER,
-        to: correo,
-        subject: "Recuperación de Contraseña",
-        text: `Para recuperar tu contraseña, haz clic en el siguiente enlace: ${resetUrl}`,
-      };
-  
-      await transporter.sendMail(mailOptions);
-  
-      res.json({ msg: "Correo de recuperación enviado correctamente" });
-    } catch (err) {
-      res.status(500).json({ error: err.message });
+  try {
+    const { correo } = req.body;
+    const pool = await poolPromise;
+
+    // Verificar si el correo existe
+    const result = await pool.request().input("correo", correo).query(`
+      SELECT * FROM Usuarios WHERE correo = @correo
+    `);
+
+    if (result.recordset.length === 0) {
+      return res.status(404).json({ msg: "Correo no encontrado" });
     }
-  };
-  
+
+    // Generar token y fecha de expiración
+    const token = crypto.randomBytes(20).toString("hex");
+    const expireDate = new Date(Date.now() + 3600000);
+
+    await pool.request()
+      .input("correo", correo)
+      .input("token", token)
+      .input("expireDate", expireDate)
+      .query(`
+        UPDATE Usuarios SET token_recuperacion = @token, token_expiracion = @expireDate WHERE correo = @correo
+      `);
+
+    const resetUrl = `${process.env.BASE_URL}/reset-password/${token}`;
+
+    // Usar Resend para enviar el correo
+    await resend.emails.send({
+      from: process.env.EMAIL_FROM, 
+      to: correo,
+      subject: "Recuperación de Contraseña",
+      text: `Para recuperar tu contraseña, haz clic en el siguiente enlace: ${resetUrl}`,
+      html: `
+        <p>Para recuperar tu contraseña, haz clic en el siguiente enlace:</p>
+        <a href="${resetUrl}">${resetUrl}</a>
+        <p>Este enlace expira en una hora.</p>
+      `,
+    });
+
+    res.json({ msg: "Correo de recuperación enviado correctamente" });
+  } catch (err) {
+    console.error("Error al enviar el correo de recuperación:", err.message);
+    res.status(500).json({ error: "Error al enviar el correo de recuperación." });
+  }
+};
+
+
   // Restablecer contraseña
   exports.restablecerContrasena = async (req, res) => {
     try {
